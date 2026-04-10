@@ -23,11 +23,11 @@ This project provides a **Dockerized prerender service** based on `prerender` wi
 
 ### Environment Variables
 
-| Variable         | Default | Description                      |
-|------------------|--------|-----------------------------------|
-| `PORT`           | `3000` | Port the service listens on       |
-| `CACHE_MAXSIZE`  | `1000` | Maximum number of cached entries  |
-| `CACHE_TTL`      | `86400`| Cache lifetime in seconds (1 day) |
+| Variable         | Default | Description                        |
+|------------------|--------|-------------------------------------|
+| `PORT`           | `3000` | Port the service listens on         |
+| `CACHE_MAXSIZE`  | `1000` | Maximum number of cached entries    |
+| `CACHE_TTL`      | `43200`| Cache lifetime in seconds (12 hour) |
 
 ---
 
