@@ -1,6 +1,6 @@
 const prerender = require('prerender');
 process.env.CACHE_MAXSIZE = process.env.CACHE_MAXSIZE || 1000;
-process.env.CACHE_TTL = process.env.CACHE_TTL || 86400;
+process.env.CACHE_TTL = process.env.CACHE_TTL || 43200;
 
 const server = prerender({
     chromeLocation: '/usr/bin/chromium',

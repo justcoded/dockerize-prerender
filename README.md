@@ -38,12 +38,13 @@ This project provides a **Dockerized prerender service** based on `prerender` wi
 ```bash
 docker build -t prerender-service .
 ```
-or check our repository
+or check GitHub repository
 
 ```
-path to docker image*****
+ghcr.io/justcoded/dockerize-prerender:latest
 ```
 
+with tag latest or number tag.
 
 ## 🧩 Docker Compose
 
@@ -67,9 +68,8 @@ or
 
 ```
 services:
-  image: prerender-image:latest
-    ports:
-      - "3000:3000"
+  webapp-prerender:
+    image: ghcr.io/justcoded/dockerize-prerender:latest
     shm_size: 512mb
     restart: unless-stopped
     environment:
