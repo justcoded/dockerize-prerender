@@ -63,4 +63,4 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}::${{steps.set_version.outputs.no-dash}}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{steps.set_version.outputs.no-dash}}
