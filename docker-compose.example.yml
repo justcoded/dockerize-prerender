@@ -1,0 +1,12 @@
+services:
+
+  webapp-prerender:
+    ports:
+      - '3000:3000'
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped  
+    shm_size: 512mb
+    environment:
+      - PORT=3000
