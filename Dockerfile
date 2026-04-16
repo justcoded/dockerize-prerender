@@ -3,6 +3,7 @@ FROM node:24-bookworm-slim
 # Install chromium and fonts
 RUN apt-get update && apt-get install -y \
     chromium \
+    curl \
     fonts-freefont-ttf \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
