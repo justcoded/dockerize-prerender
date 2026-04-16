@@ -44,12 +44,24 @@ server.use({
     }
 });
 
-
+server.use({
+    beforeSend: (req, res, next) => {
+        if (req.prerender.res) {
+            const body = req.prerender.res.body || '';
+            req.prerender.res.headers = {
+                'content-type': 'text/html; charset=utf-8',
+                'content-length': Buffer.byteLength(body, 'utf8'),
+                // 'cache-control': 'public, max-age=600'
+            };
+        }
+        next();
+    }
+});
 
 
 server.use(prerender.removeScriptTags()); 
 
 server.use(memoryCache);
 
-console.log('Prerender on Node 24 starting...');
+console.log('Prerender on Node 24 in manual mode starting...');
 server.start();
