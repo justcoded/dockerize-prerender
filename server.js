@@ -63,5 +63,5 @@ server.use(prerender.removeScriptTags());
 
 server.use(memoryCache);
 
-console.log('Prerender on Node 24 in manual mode starting...');
+console.log('Prerender on Node 24 is starting...');
 server.start();
