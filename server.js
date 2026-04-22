@@ -12,11 +12,40 @@ const server = prerender({
         '--disable-dev-shm-usage',
         '--ignore-certificate-errors',
         '--allow-insecure-localhost'
-    ]
+    ],
+    pageLoadTimeout: 20000,
+    waitAfterLastRequest: 500,
+    pageDoneCheckInterval: 300
 });
 
 process.env.CACHE_MAXSIZE = process.env.CACHE_MAXSIZE || 1000;
 process.env.CACHE_TTL = process.env.CACHE_TTL || 43200;
+
+// Block requests that typically hang and prevent page from finishing
+const BLOCKED_PATTERNS = [
+    /google-analytics\.com/,
+    /googletagmanager\.com/,
+    /facebook\.net/,
+    /facebook\.com\/tr/,
+    /hotjar\.com/,
+    /intercom\.io/,
+    /crisp\.chat/,
+    /sentry\.io/,
+    /segment\.com/,
+    /mixpanel\.com/,
+    /amplitude\.com/,
+    /clarity\.ms/,
+    /doubleclick\.net/,
+    /\.woff2?(\?|$)/,
+    /\.ttf(\?|$)/,
+    /ws:\/\//,
+    /wss:\/\//,
+    /\/socket\.io\//,
+    /\/sockjs-node\//,
+    /\/hub\?/,           // SignalR
+    /eventsource/i,
+    /livereload/,
+];
 
 server.use({
     tabCreated: (req, res, next) => {
@@ -26,18 +55,64 @@ server.use({
             tab.Console.enable();
             tab.Network.enable();
 
-            tab.Console.messageAdded((params) => {
-                console.log('🟡 Browser log:', params.message.text);
+            const pendingRequests = new Map();
+
+            // Use Fetch domain for request interception (replaces deprecated Network.setRequestInterception)
+            tab.Fetch.enable({ patterns: [{ requestStage: 'Request' }] });
+            tab.Fetch.requestPaused((params) => {
+                const url = params.request.url;
+                const blocked = BLOCKED_PATTERNS.some(p => p.test(url));
+                if (blocked) {
+                    console.log('🚫 Blocked:', url);
+                    tab.Fetch.failRequest({
+                        requestId: params.requestId,
+                        errorReason: 'Aborted'
+                    });
+                } else {
+                    tab.Fetch.continueRequest({ requestId: params.requestId });
+                }
+            });
+
+            tab.Network.requestWillBeSent((params) => {
+                pendingRequests.set(params.requestId, {
+                    url: params.request.url,
+                    time: Date.now()
+                });
+            });
+
+            tab.Network.loadingFinished((params) => {
+                pendingRequests.delete(params.requestId);
             });
 
             tab.Network.loadingFailed((params) => {
-                console.log('🔴 Network Failed:', params.errorText, params.url);
+                const info = pendingRequests.get(params.requestId);
+                if (info) {
+                    console.log('🔴 Network Failed:', params.errorText, info.url);
+                    pendingRequests.delete(params.requestId);
+                }
+            });
+
+            tab.Console.messageAdded((params) => {
+                console.log('🟡 Browser log:', params.message.text);
             });
 
             tab.Runtime.enable();
             tab.Runtime.exceptionThrown((exception) => {
                 console.log('💥 JS Exception:', exception.exceptionDetails.text);
             });
+
+            // Log pending requests every 3s to identify what's hanging
+            const interval = setInterval(() => {
+                if (pendingRequests.size > 0) {
+                    const now = Date.now();
+                    console.log(`⏳ Pending requests (${pendingRequests.size}):`);
+                    pendingRequests.forEach(({ url, time }) => {
+                        console.log(`   - ${((now - time) / 1000).toFixed(1)}s ${url}`);
+                    });
+                }
+            }, 3000);
+
+            req.prerender.on('tabNavigated', () => clearInterval(interval));
         }
 
         next();
@@ -51,16 +126,13 @@ server.use({
             req.prerender.res.headers = {
                 'content-type': 'text/html; charset=utf-8',
                 'content-length': Buffer.byteLength(body, 'utf8'),
-                // 'cache-control': 'public, max-age=600'
             };
         }
         next();
     }
 });
 
-
 server.use(prerender.removeScriptTags()); 
-
 server.use(memoryCache);
 
 console.log('Prerender on Node 24 is starting...');
