@@ -38,6 +38,8 @@ const BLOCKED_PATTERNS = [
     /doubleclick\.net/,
     /\.woff2?(\?|$)/,
     /\.ttf(\?|$)/,
+    /fonts\.googleapis\.com/,
+    /fonts\.gstatic\.com/,
     /ws:\/\//,
     /wss:\/\//,
     /\/socket\.io\//,
@@ -123,12 +125,10 @@ server.use({
                     pendingRequests.forEach(({ url, time }) => {
                         console.log(`   - ${((now - time) / 1000).toFixed(1)}s ${url}`);
                     });
+                } else {
+                    clearInterval(interval);
                 }
             }, 3000);
-
-            const cleanup = () => clearInterval(interval);
-            req.prerender.on('tabNavigated', cleanup);
-            req.prerender.on('beforeSend', cleanup);
         }
 
         next();
