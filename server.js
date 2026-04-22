@@ -42,9 +42,16 @@ const BLOCKED_PATTERNS = [
     /wss:\/\//,
     /\/socket\.io\//,
     /\/sockjs-node\//,
-    /\/hub\?/,           // SignalR
+    /\/hub\?/,
     /eventsource/i,
     /livereload/,
+];
+
+// Patterns for requests that should be ignored in requestsInFlight count
+// (they bypass Fetch interception and hang forever)
+const IGNORE_INFLIGHT_PATTERNS = [
+    /^blob:/,
+    /^data:/,
 ];
 
 server.use({
@@ -57,7 +64,7 @@ server.use({
 
             const pendingRequests = new Map();
 
-            // Use Fetch domain for request interception (replaces deprecated Network.setRequestInterception)
+            // Use Fetch domain to block unwanted network requests
             tab.Fetch.enable({ patterns: [{ requestStage: 'Request' }] });
             tab.Fetch.requestPaused((params) => {
                 const url = params.request.url;
@@ -74,10 +81,18 @@ server.use({
             });
 
             tab.Network.requestWillBeSent((params) => {
-                pendingRequests.set(params.requestId, {
-                    url: params.request.url,
-                    time: Date.now()
-                });
+                const url = params.request.url;
+
+                // blob: URLs bypass Fetch interception and hang forever.
+                // Prerender already incremented numRequestsInFlight before our handler,
+                // so we decrement it back and skip tracking.
+                if (IGNORE_INFLIGHT_PATTERNS.some(p => p.test(url))) {
+                    tab.prerender.numRequestsInFlight--;
+                    console.log('⏭️ Ignored from inflight:', url);
+                    return;
+                }
+
+                pendingRequests.set(params.requestId, { url, time: Date.now() });
             });
 
             tab.Network.loadingFinished((params) => {
@@ -101,18 +116,19 @@ server.use({
                 console.log('💥 JS Exception:', exception.exceptionDetails.text);
             });
 
-            // Log pending requests every 3s to identify what's hanging
             const interval = setInterval(() => {
                 if (pendingRequests.size > 0) {
                     const now = Date.now();
-                    console.log(`⏳ Pending requests (${pendingRequests.size}):`);
+                    console.log(`⏳ Pending requests (${pendingRequests.size}), inflight=${tab.prerender.numRequestsInFlight}:`);
                     pendingRequests.forEach(({ url, time }) => {
                         console.log(`   - ${((now - time) / 1000).toFixed(1)}s ${url}`);
                     });
                 }
             }, 3000);
 
-            req.prerender.on('tabNavigated', () => clearInterval(interval));
+            const cleanup = () => clearInterval(interval);
+            req.prerender.on('tabNavigated', cleanup);
+            req.prerender.on('beforeSend', cleanup);
         }
 
         next();
