@@ -48,7 +48,7 @@ with tag latest or number tag.
 
 ## 🧩 Docker Compose
 
-Example docker-compose.yml:
+Example docker-compose.yml for development:
 
 ```
 services:
@@ -58,22 +58,33 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    shm_size: 512mb
+    shm_size: 1024mb
     restart: unless-stopped
+    init: true
     environment:
       - PORT=3000
+    # For qucker cahnges  
+    volumes:
+      - ./server.js:/app/server.js
+
 ```
 
-or
+or for prod/staging usage:
 
 ```
 services:
   webapp-prerender:
     image: ghcr.io/justcoded/dockerize-prerender:latest
-    shm_size: 512mb
+    shm_size: 1024mb
     restart: unless-stopped
+    init: true
     environment:
       - PORT=3000
+      # Maximum number of items to keep in the memory cache
+      - CACHE_MAXSIZE=1000
+      # Cache duration in seconds (43200s = 12 hours)
+      - CACHE_TTL=43200
+      
 ```
 
 

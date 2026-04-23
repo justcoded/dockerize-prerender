@@ -11,11 +11,21 @@ const server = prerender({
         '--hide-scrollbars',
         '--disable-dev-shm-usage',
         '--ignore-certificate-errors',
-        '--allow-insecure-localhost'
+        '--allow-insecure-localhost',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-extensions',
+        '--disable-sync',
+        '--disable-translate',
+        '--disable-software-rasterizer',
+        '--metrics-recording-only',
+        '--no-first-run',
+        '--safebrowsing-disable-auto-update'
     ],
     pageLoadTimeout: 20000,
-    waitAfterLastRequest: 500,
-    pageDoneCheckInterval: 300
+    waitAfterLastRequest: 1500,
+    pageDoneCheckInterval: 300,
+    chromeRefreshRate: 100
 });
 
 process.env.CACHE_MAXSIZE = process.env.CACHE_MAXSIZE || 1000;
@@ -118,16 +128,18 @@ server.use({
                 console.log('💥 JS Exception:', exception.exceptionDetails.text);
             });
 
+            const intervalStart = Date.now();
             const interval = setInterval(() => {
-                if (pendingRequests.size > 0) {
-                    const now = Date.now();
-                    console.log(`⏳ Pending requests (${pendingRequests.size}), inflight=${tab.prerender.numRequestsInFlight}:`);
-                    pendingRequests.forEach(({ url, time }) => {
-                        console.log(`   - ${((now - time) / 1000).toFixed(1)}s ${url}`);
-                    });
-                } else {
+                // Safety: kill interval after 30s max to prevent leaks
+                if (Date.now() - intervalStart > 20000 || pendingRequests.size === 0) {
                     clearInterval(interval);
+                    return;
                 }
+                const now = Date.now();
+                console.log(`⏳ Pending requests (${pendingRequests.size}), inflight=${tab.prerender.numRequestsInFlight}:`);
+                pendingRequests.forEach(({ url, time }) => {
+                    console.log(`   - ${((now - time) / 1000).toFixed(1)}s ${url}`);
+                });
             }, 3000);
         }
 
@@ -150,6 +162,21 @@ server.use({
 
 server.use(prerender.removeScriptTags()); 
 server.use(memoryCache);
+
+const RESTART_INTERVAL = 24 * 60 * 60 * 1000;
+const startedAt = Date.now();
+
+setTimeout(() => {
+    console.log('♻️ Scheduled restart after 24 hours');
+    process.exit(0);
+}, RESTART_INTERVAL);
+
+setInterval(() => {
+    const remaining = RESTART_INTERVAL - (Date.now() - startedAt);
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.floor((remaining % 3600000) / 60000);
+    console.log(`🕐 Restart in ${hours}h ${minutes}m`);
+}, 60 * 60 * 1000);
 
 console.log('Prerender on Node 24 is starting...');
 server.start();
