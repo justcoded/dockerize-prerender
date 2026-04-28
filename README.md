@@ -28,6 +28,7 @@ This project provides a **Dockerized prerender service** based on `prerender` wi
 | `PORT`           | `3000` | Port the service listens on         |
 | `CACHE_MAXSIZE`  | `1000` | Maximum number of cached entries    |
 | `CACHE_TTL`      | `43200`| Cache lifetime in seconds (12 hour) |
+| `WAIT_AFTER_LAST_REQUEST` | `200` | Wait time (ms) after last network request before rendering |
 
 ---
 
@@ -84,6 +85,8 @@ services:
       - CACHE_MAXSIZE=1000
       # Cache duration in seconds (43200s = 12 hours)
       - CACHE_TTL=43200
+      # Wait time in ms after last network request before rendering
+      - WAIT_AFTER_LAST_REQUEST=200
       
 ```
 

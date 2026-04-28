@@ -20,16 +20,18 @@ const server = prerender({
         '--disable-software-rasterizer',
         '--metrics-recording-only',
         '--no-first-run',
-        '--safebrowsing-disable-auto-update'
+        '--safebrowsing-disable-auto-update',
+        '--blink-settings=imagesEnabled=false'
     ],
     pageLoadTimeout: 20000,
-    waitAfterLastRequest: 1500,
-    pageDoneCheckInterval: 300,
+    waitAfterLastRequest: parseInt(process.env.WAIT_AFTER_LAST_REQUEST, 10) || 200,
+    pageDoneCheckInterval: 50,
     chromeRefreshRate: 100
 });
 
 process.env.CACHE_MAXSIZE = process.env.CACHE_MAXSIZE || 1000;
 process.env.CACHE_TTL = process.env.CACHE_TTL || 43200;
+process.env.WAIT_AFTER_LAST_REQUEST = process.env.WAIT_AFTER_LAST_REQUEST || 200;
 
 // Block requests that typically hang and prevent page from finishing
 const BLOCKED_PATTERNS = [
