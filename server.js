@@ -170,7 +170,7 @@ server.use({
 
 
 server.use(prerender.removeScriptTags()); 
-//server.use(memoryCache);
+server.use(memoryCache);
 
 const RESTART_INTERVAL = 24 * 60 * 60 * 1000;
 const startedAt = Date.now();
