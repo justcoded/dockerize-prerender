@@ -21,9 +21,10 @@ const server = prerender({
         '--metrics-recording-only',
         '--no-first-run',
         '--safebrowsing-disable-auto-update',
-        '--blink-settings=imagesEnabled=false'
+        '--blink-settings=imagesEnabled=false',
+        '--no-pings'
     ],
-    pageLoadTimeout: 20000,
+    pageLoadTimeout: 10000,
     waitAfterLastRequest: parseInt(process.env.WAIT_AFTER_LAST_REQUEST, 10) || 200,
     pageDoneCheckInterval: 50,
     chromeRefreshRate: 100
@@ -59,6 +60,11 @@ const BLOCKED_PATTERNS = [
     /\/hub\?/,
     /eventsource/i,
     /livereload/,
+    /youtube\.com/,
+    /googlevideo\.com/,
+    /ytimg\.com/,
+    /\.(mp4|webm|ogv|mp3)(\?|$)/, 
+    /\.(png|jpg|jpeg|gif|svg|ico)(\?|$)/,
 ];
 
 // Patterns for requests that should be ignored in requestsInFlight count
@@ -162,8 +168,9 @@ server.use({
     }
 });
 
+
 server.use(prerender.removeScriptTags()); 
-server.use(memoryCache);
+//server.use(memoryCache);
 
 const RESTART_INTERVAL = 24 * 60 * 60 * 1000;
 const startedAt = Date.now();
